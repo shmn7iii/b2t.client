@@ -58,3 +58,29 @@ get '/b2t/tapyrus/getrawtransaction' do
   json data
 end
 
+get '/b2t/execute' do
+  amount = params['amount']
+
+  # 新規送金先アドレスを受け取り
+  uri = URI('http://host.docker.internal:8910/b2t/bitcoin/getnewaddress')
+  res = Net::HTTP.get_response(uri)
+  payment_address = res.body
+
+  # payment transaction
+  payment_txid = bitcoinRPC.sendtoaddress(payment_address, amount)
+
+  # receipt address
+  receipt_address = tapyrusRPC.getnewaddress
+
+  # execute
+  uri = URI("http://host.docker.internal:8910/b2t/execute?payment_txid=#{payment_txid}&receipt_address=#{receipt_address}&amount=#{amount}")
+  res = Net::HTTP.get_response(uri)
+  receipt_txid = res.body
+
+  # response
+  data = {
+    payment_tx: payment_txid,
+    receipt_txid: receipt_txid
+  }
+  json data
+end
