@@ -3,6 +3,7 @@ require 'sinatra/reloader' if development?
 require 'sinatra/json'
 require 'bitcoin'
 require 'tapyrus'
+require 'net/http'
 
 Bitcoin.chain_params = :signet
 Tapyrus.chain_params = :prod
@@ -38,3 +39,22 @@ get '/health' do
   }
   json data
 end
+
+get '/b2t/listunspent' do
+  data = {
+    bitcoin: bitcoinRPC.listunspent,
+    tapyrus: tapyrusRPC.listunspent
+  }
+  json data
+end
+
+get '/b2t/bitcoin/getrawtransaction' do
+  data = bitcoinRPC.getrawtransaction(params['txid'], true)
+  json data
+end
+
+get '/b2t/tapyrus/getrawtransaction' do
+  data = tapyrusRPC.getrawtransaction(params['txid'], true)
+  json data
+end
+
