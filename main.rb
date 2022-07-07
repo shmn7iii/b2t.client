@@ -67,7 +67,12 @@ get '/b2t/execute' do
   payment_address = res.body
 
   # payment transaction
-  payment_txid = bitcoinRPC.sendtoaddress(payment_address, amount)
+  begin
+    payment_txid = bitcoinRPC.sendtoaddress(payment_address, amount)
+  rescue RuntimeError => e
+    bitcoinRPC.loadwallet('default')
+    retry
+  end
 
   # receipt address
   receipt_address = tapyrusRPC.getnewaddress
