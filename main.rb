@@ -79,7 +79,7 @@ get '/b2t/execute' do
 
   # response
   data = {
-    payment_tx: payment_txid,
+    payment_txid: payment_txid,
     receipt_txid: receipt_txid
   }
   json data
