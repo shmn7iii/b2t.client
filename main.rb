@@ -46,6 +46,9 @@ get '/b2t/listunspent' do
     tapyrus: tapyrusRPC.listunspent
   }
   json data
+rescue RuntimeError => e
+  bitcoinRPC.loadwallet('default')
+  retry
 end
 
 end
