@@ -22,6 +22,19 @@ def tapyrusRPC
   Tapyrus::RPC::TapyrusCoreClient.new(tapyrus_rpc_config)
 end
 
+# laod bitcoin wallet
+begin
+  bitcoinRPC.loadwallet('default')
+rescue RuntimeError => e
+  case JSON.parse(e.message)['code']
+  when -18 # => Wallet file verification failed. (Path does not exist)
+    bitcoinRPC.createwallet('default')
+  when -28 # => Loading block index.
+    sleep 1
+    retry
+  end
+end
+
 configure do
   set :bind, '0.0.0.0'
 end
@@ -50,16 +63,10 @@ get '/b2t/listunspent' do
     tapyrus: tapyrusRPC.listunspent
   }
   json data
-rescue RuntimeError => e
-  bitcoinRPC.loadwallet('default')
-  retry
 end
 
 get '/b2t/bitcoin/getnewaddress' do
   bitcoinRPC.getnewaddress
-rescue RuntimeError => e
-  bitcoinRPC.loadwallet('default')
-  retry
 end
 
 get '/b2t/tapyrus/getnewaddress' do
@@ -74,15 +81,10 @@ get '/b2t/execute' do
   res = Net::HTTP.get_response(uri)
   payment_address = res.body
 
-  # payment transaction
-  begin
-    payment_txid = bitcoinRPC.sendtoaddress(payment_address, amount)
-  rescue RuntimeError => e
-    bitcoinRPC.loadwallet('default')
-    retry
-  end
+  # create payment transaction
+  payment_txid = bitcoinRPC.sendtoaddress(payment_address, amount)
 
-  # receipt address
+  # get receipt address
   receipt_address = tapyrusRPC.getnewaddress
 
   # send request to server
