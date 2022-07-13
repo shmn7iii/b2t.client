@@ -4,17 +4,21 @@ require 'sinatra/json'
 require 'bitcoin'
 require 'tapyrus'
 require 'net/http'
+require 'dotenv'
 
+Dotenv.load
 Bitcoin.chain_params = :signet
 Tapyrus.chain_params = :prod
 
 def bitcoinRPC
-  bitcoin_rpc_config = { schema: 'http', host: 'bitcoind', port: 38_332, user: 'hoge', password: 'hoge' }
+  bitcoin_rpc_config = { schema: ENV['bitcoind_rpc_schema'], host: ENV['bitcoind_rpc_host'], port: ENV['bitcoind_rpc_port'],
+                         user: ENV['bitcoind_rpc_user'], password: ENV['bitcoind_rpc_password'] }
   Bitcoin::RPC::BitcoinCoreClient.new(bitcoin_rpc_config)
 end
 
 def tapyrusRPC
-  tapyrus_rpc_config = { schema: 'http', host: 'tapyrusd', port: 2377, user: 'hoge', password: 'hoge' }
+  tapyrus_rpc_config = { schema: ENV['tapyrusd_rpc_schema'], host: ENV['tapyrusd_rpc_host'], port: ENV['tapyrusd_rpc_port'],
+                         user: ENV['tapyrusd_rpc_user'], password: ENV['tapyrusd_rpc_password'] }
   Tapyrus::RPC::TapyrusCoreClient.new(tapyrus_rpc_config)
 end
 
@@ -66,7 +70,7 @@ get '/b2t/execute' do
   amount = params['amount']
 
   # 新規送金先アドレスを受け取り
-  uri = URI('http://host.docker.internal:8910/b2t/bitcoin/getnewaddress')
+  uri = URI("http://#{ENV['server_host']}:8910/b2t/bitcoin/getnewaddress")
   res = Net::HTTP.get_response(uri)
   payment_address = res.body
 
@@ -81,8 +85,8 @@ get '/b2t/execute' do
   # receipt address
   receipt_address = tapyrusRPC.getnewaddress
 
-  # execute
-  uri = URI("http://host.docker.internal:8910/b2t/execute?payment_txid=#{payment_txid}&receipt_address=#{receipt_address}&amount=#{amount}")
+  # send request to server
+  uri = URI("http://#{ENV['server_host']}:8910/b2t/execute?payment_txid=#{payment_txid}&receipt_address=#{receipt_address}&amount=#{amount}")
   res = Net::HTTP.get_response(uri)
   receipt_txid = res.body
 
